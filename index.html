@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>安仔开抢三代 · 云端看单</title>
+<meta name="appver" content="anzai-v3.1">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#f2f4f7;color:#222;padding-bottom:20px}
@@ -74,7 +75,7 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
 </head>
 <body>
 <div class="login" id="loginBox">
-  <h2>安仔开抢三代 · 云端</h2>
+  <h2>安仔开抢三代 · 云端（V3.1）</h2>
   <input type="password" id="pw" placeholder="输入密码" inputmode="numeric">
   <input type="text" id="key" placeholder="数据密钥(以 nfapp_ 开头)" autocomplete="off" style="-webkit-text-security:disc">
   <button onclick="login()">登录</button>
@@ -178,7 +179,7 @@ function loadState(){
   }).catch(function(){});
 }
 function render(d){
-  $("subInfo").textContent = (d.running?"● 抢购运行中":"○ 抢购未运行")+"　·　云端自动刷新"+(d.t?("  "+String(d.t).slice(11,19)):"");
+  $("subInfo").textContent = (d.running?"● 抢购运行中":"○ 抢购未运行")+"　·　云端自动刷新 · V3.1"+(d.t?("  "+String(d.t).slice(11,19)):"");
   var agg=$("aggBar");
   if(d.aggressive){ var rem=Math.max(0, d.agg_until-Math.floor(Date.now()/1000)); var mm=Math.floor(rem/60), ss=rem%60; agg.style.display="block"; agg.textContent="🔥 猛攻中 剩"+String(mm).padStart(2,"0")+":"+String(ss).padStart(2,"0")+" | "+(d.trigger||""); } else agg.style.display="none";
   var pb="";
@@ -275,6 +276,26 @@ function autoLogin(){
   if(k && /^nfapp_/.test(k)){ $("loginBox").style.display="none"; $("app").style.display="block"; start(); }
   else { $("loginBox").style.display="flex"; }
 }
+
+var APP_VER = "anzai-v3.1";
+function checkVer(){
+  try{
+    fetch("index.html?ver=" + Date.now(), {cache:"no-store"}).then(function(r){ return r.text(); }).then(function(t){
+      var m = t.match(/name="appver" content="([^"]+)"/);
+      if(m && m[1] && m[1] !== APP_VER && !document.getElementById("verBanner")){
+        var b = document.createElement("div");
+        b.id = "verBanner";
+        b.style.cssText = "position:fixed;left:10px;right:10px;bottom:12px;z-index:99;background:#1a73e8;color:#fff;border-radius:10px;padding:12px 14px;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.25)";
+        b.innerHTML = "发现新版本（V" + m[1].replace("anzai-v","") + "），点此刷新加载最新版 <span style='float:right;font-weight:800'>刷新</span>";
+        b.onclick = function(){ location.reload(); };
+        document.body.appendChild(b);
+        setTimeout(function(){ try{ document.body.removeChild(b); }catch(e){} }, 15000);
+      }
+    }).catch(function(){});
+  }catch(e){}
+}
+setInterval(checkVer, 20000);
+
 window.addEventListener("load", autoLogin);
 
 </script>
