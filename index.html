@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>安仔开抢三代 · 云端看单</title>
-<meta name="appver" content="anzai-v3.2">
+<meta name="appver" content="anzai-v3.3">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#f2f4f7;color:#222;padding-bottom:20px}
@@ -75,7 +75,7 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
 </head>
 <body>
 <div class="login" id="loginBox">
-  <h2>安仔开抢三代 · 云端（V3.2）</h2>
+  <h2>安仔开抢三代 · 云端（V3.3）</h2>
   <input type="password" id="pw" placeholder="输入密码" inputmode="numeric">
   <input type="text" id="key" placeholder="数据密钥(以 nfapp_ 开头)" autocomplete="off" style="-webkit-text-security:disc">
   <button onclick="login()">登录</button>
@@ -94,9 +94,11 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
   <div class="tabs">
     <button id="tabCur" class="on" onclick="showTab('cur')">当前订单</button>
     <button id="tabShip" onclick="showTab('ship')">发货状态</button>
+    <button id="tabHis" onclick="showTab('his')">历史订单</button>
   </div>
   <div id="curBox"></div>
   <div id="shipBox" style="display:none"></div>
+  <div id="hisBox" style="display:none"></div>
 </div>
 
 <div class="modal" id="qrModal">
@@ -162,9 +164,12 @@ function showTab(t){
   curTab=t;
   $("tabCur").className = t==="cur"?"on":"";
   $("tabShip").className = t==="ship"?"on":"";
+  $("tabHis").className = t==="his"?"on":"";
   $("curBox").style.display = t==="cur"?"":"none";
   $("shipBox").style.display = t==="ship"?"":"none";
+  $("hisBox").style.display = t==="his"?"":"none";
   if(t==="ship"){ renderShip((DATA&&DATA.ship)||[]); if(shipTimer) clearInterval(shipTimer); shipTimer=setInterval(loadState, 15000); }
+  else if(t==="his"){ renderHistory((DATA&&DATA.history)||[]); if(shipTimer){ clearInterval(shipTimer); shipTimer=null; } }
   else { if(shipTimer){ clearInterval(shipTimer); shipTimer=null; } }
 }
 function statusName(s){ if(s==="已付款")return ["已付款","paid"]; if(s==="未付款")return ["未付款","unpaid"]; return [s||"?","other"]; }
@@ -176,10 +181,11 @@ function loadState(){
     var sig=JSON.stringify([d.running,d.aggressive,d.agg_until,d.trigger,d.products,(d.orders||[]).map(function(o){return o.oid+o.status;})]);
     if(sig!==lastSig){ lastSig=sig; render(d); }
     if(curTab==="ship") renderShip(d.ship||[]);
+    if(curTab==="his") renderHistory(d.history||[]);
   }).catch(function(){});
 }
 function render(d){
-  $("subInfo").textContent = (d.running?"● 抢购运行中":"○ 抢购未运行")+"　·　云端自动刷新 · V3.2"+(d.t?("  "+String(d.t).slice(11,19)):"");
+  $("subInfo").textContent = (d.running?"● 抢购运行中":"○ 抢购未运行")+"　·　云端自动刷新 · V3.3"+(d.t?("  "+String(d.t).slice(11,19)):"");
   var agg=$("aggBar");
   if(d.aggressive){ var rem=Math.max(0, d.agg_until-Math.floor(Date.now()/1000)); var mm=Math.floor(rem/60), ss=rem%60; agg.style.display="block"; agg.textContent="🔥 猛攻中 剩"+String(mm).padStart(2,"0")+":"+String(ss).padStart(2,"0")+" | "+(d.trigger||""); } else agg.style.display="none";
   var pb="";
@@ -192,6 +198,7 @@ function render(d){
   lastOids=oids;
   ordersCache=orders;
   if(curTab==="cur") renderAccounts(d.accounts||[]);
+  if(curTab==="his") renderHistory(d.history||[]);
 }
 function renderAccounts(cards){
   var box=$("curBox");
@@ -227,6 +234,28 @@ function tickCd(){
     var mm=Math.floor(s/60), ss=("0"+(s%60)).slice(-2);
     e.textContent="剩余"+mm+":"+ss;
   }
+}
+function renderHistory(list){
+  var box=$("hisBox");
+  if(!list||!list.length){ box.innerHTML='<div class="empty">暂无历史订单</div>'; return; }
+  var groups={};
+  list.forEach(function(o){ var dt=(o.time||"").slice(0,10)||"未知日期"; (groups[dt]=groups[dt]||[]).push(o); });
+  var dates=Object.keys(groups).sort().reverse();
+  var h="";
+  dates.forEach(function(dt){
+    var cards=groups[dt].map(function(o){
+      var st=statusName(o.status);
+      var k=esc((o.account||"")+(o.no==null?"":o.no));
+      var rm=o.remark?("　📝"+esc(o.remark)):"";
+      return '<div class="card"><div class="top"><span class="key">'+k+'</span><span class="badge '+st[1]+'">'+st[0]+'</span><span style="font-size:11px;color:#999">'+esc((o.time||"").slice(11,19))+'</span></div>'
+        +'<div class="pname">'+esc(o.pname||"")+'<span class="price">'+fmtPrice(o.fee)+'</span></div>'
+        +'<div class="addr">'+esc(o.buyer||"")+rm+'</div></div>';
+    }).join("");
+    var open=(expanded[dt]===false)?' style="display:none"':"";
+    var tri=(expanded[dt]===false)?"▸":"▾";
+    h+='<div class="dgroup"><div class="dhead" onclick="toggleGroup(this,\''+dt+'\')"><span class="tri">'+tri+'</span> '+dt+'（'+groups[dt].length+'单）</div><div class="dbody"'+open+'>'+cards+'</div></div>';
+  });
+  box.innerHTML=h;
 }
 function shipLabel(st, ems){ if(st==="NOSEND") return ["未发货","s0"]; if(st==="SENDED"){ if(ems==="SIGNED") return ["已签收","s3"]; if(ems==="ROUTING") return ["在途中","s2"]; return ["已发货","s1"]; } if(st==="REFUND") return ["已退款","s0"]; return [st||"?","s0"]; }
 function toggleGroup(el, dt){ expanded[dt]=(expanded[dt]===false)?true:false; var b=el.nextElementSibling; var tri=el.querySelector(".tri"); if(expanded[dt]===false){ b.style.display="none"; tri.textContent="▸"; } else { b.style.display="block"; tri.textContent="▾"; } }
@@ -277,7 +306,7 @@ function autoLogin(){
   else { $("loginBox").style.display="flex"; }
 }
 
-var APP_VER = "anzai-v3.2";
+var APP_VER = "anzai-v3.3";
 function checkVer(){
   try{
     fetch("index.html?ver=" + Date.now(), {cache:"no-store"}).then(function(r){ return r.text(); }).then(function(t){
