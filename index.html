@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>安仔开抢三代 · 云端看单</title>
-<meta name="appver" content="anzai-v3.5">
+<meta name="appver" content="anzai-v3.6">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#f2f4f7;color:#222;padding-bottom:20px}
@@ -75,7 +75,7 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
 </head>
 <body>
 <div class="login" id="loginBox">
-  <h2>安仔开抢三代 · 云端（V3.5）</h2>
+  <h2>安仔开抢三代 · 云端（V3.6）</h2>
   <input type="password" id="pw" placeholder="输入密码" inputmode="numeric">
   <input type="text" id="key" placeholder="数据密钥(以 nfapp_ 开头)" autocomplete="off" style="-webkit-text-security:disc">
   <button onclick="login()">登录</button>
@@ -185,7 +185,7 @@ function loadState(){
   }).catch(function(){});
 }
 function render(d){
-  $("subInfo").textContent = (d.running?"● 抢购运行中":"○ 抢购未运行")+"　·　云端自动刷新 · V3.5"+(d.t?("  "+String(d.t).slice(11,19)):"");
+  $("subInfo").textContent = (d.running?"● 抢购运行中":"○ 抢购未运行")+"　·　云端自动刷新 · V3.6"+(d.t?("  "+String(d.t).slice(11,19)):"");
   var agg=$("aggBar");
   if(d.aggressive){ var rem=Math.max(0, d.agg_until-Math.floor(Date.now()/1000)); var mm=Math.floor(rem/60), ss=rem%60; agg.style.display="block"; agg.textContent="🔥 猛攻中 剩"+String(mm).padStart(2,"0")+":"+String(ss).padStart(2,"0")+" | "+(d.trigger||""); } else agg.style.display="none";
   var pb="";
@@ -267,11 +267,12 @@ function renderHistory(list){
       var rtxt=o.remark||localRem(o.oid);
       var rm=rtxt?("　📝"+esc(rtxt)):"";
       var cd=(o.status==="未付款"&&o.lockExp)?('<span class="cd" data-exp="'+o.lockExp+'">…</span>'):"";
-      var btns="";
+      var payBtn="";
       if(o.status==="未付款" && o.lockExp && o.codeUrl){
-        btns='<div class="btns"><button class="btn qr" onclick="openQr(\''+esc(orderKey(o))+'\')">付款二维码</button>'
-            +'<button class="btn rem" onclick="remarkHis(\''+esc(o.oid)+'\')">备注</button></div>';
+        payBtn='<button class="btn qr" onclick="openQr(\''+esc(orderKey(o))+'\')">付款二维码</button>';
       }
+      var remBtn = o.oid ? ('<button class="btn rem" onclick="remarkHis(\''+esc(o.oid)+'\')">备注</button>') : "";
+      var btns = (payBtn||remBtn) ? ('<div class="btns">'+payBtn+remBtn+'</div>') : "";
       return '<div class="card"><div class="top"><span class="key">'+k+'</span><span class="badge '+st[1]+'">'+st[0]+'</span><span style="font-size:11px;color:#999">'+esc((o.time||"").slice(11,19))+'</span>'+cd+'</div>'
         +'<div class="pname">'+esc(o.pname||"")+'<span class="price">'+fmtPrice(o.fee)+'</span></div>'
         +'<div class="addr">'+esc(o.buyer||"")+rm+'</div>'+btns+'</div>';
@@ -292,7 +293,7 @@ function renderShip(list){
   var dates=Object.keys(groups).sort().reverse();
   var h="";
   dates.forEach(function(dt){
-    var cards=groups[dt].map(function(o){
+    var cards=groups[dt].sort(function(a,b){ return (b.payTime||"").localeCompare(a.payTime||""); }).map(function(o){
       var sl=shipLabel(o.state,o.ems);
       return '<div class="card"><div class="top"><span class="key">'+esc(o.key||o.account)+'</span><span class="badge other ship-st '+sl[1]+'">'+sl[0]+'</span><span style="font-size:11px;color:#999">'+esc(o.payTime)+'</span></div><div class="pname">'+esc(o.goods)+'</div><div class="addr">'+(o.buyer?esc(o.buyer)+" ":"")+esc(o.recv)+'</div>'+(o.code?'<div class="addr">单号:'+esc(o.code)+'　'+esc(o.cp)+'</div>':'')+'</div>';
     }).join("");
@@ -337,7 +338,7 @@ function autoLogin(){
   else { $("loginBox").style.display="flex"; }
 }
 
-var APP_VER = "anzai-v3.5";
+var APP_VER = "anzai-v3.6";
 function checkVer(){
   try{
     fetch("index.html?ver=" + Date.now(), {cache:"no-store"}).then(function(r){ return r.text(); }).then(function(t){
