@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>安仔开抢三代 · 云端看单</title>
-<meta name="appver" content="anzai-v3.6">
+<title>安仔开抢四代 · 云端看单</title>
+<meta name="appver" content="anzai-v5.5">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#f2f4f7;color:#222;padding-bottom:20px}
@@ -65,6 +65,36 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
 .set-row{display:flex;justify-content:space-between;align-items:center;padding:8px 4px;font-size:13px;border-bottom:1px solid #f0f0f0}
 .ship-st{font-weight:700}
 .ship-st.s0{color:#888}.ship-st.s1{color:#1a73e8}.ship-st.s2{color:#e67e22}.ship-st.s3{color:#27ae60}
+/* 四代控制弹窗：可滚动，按钮始终可达 */
+#ctrlModal .box{max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+#ctrlResult{max-height:42vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+/* 四代：历史/发货紧凑；备注按钮小一点 */
+#hisBox .card{padding:7px 9px;margin:6px 0}
+#hisBox .pname{margin-top:2px}
+#hisBox .addr{margin-top:1px;font-size:11px}
+#hisBox .btns{margin-top:3px}
+#hisBox .btn.rem.small,#hisBox .btn.qr{padding:3px 10px;font-size:11px;border-radius:8px}
+#shipBox .card{padding:7px 9px;margin:6px 0}
+#shipBox .addr{font-size:11px;margin-top:1px}
+/* 四代：发货/历史 商品名同行 + 备注右上角 */
+#hisBox .top .pn,#shipBox .top .pn{font-size:12px;font-weight:600;color:#333;min-width:0}
+/* 历史：第一行不换行，商品名可省略，备注固定在最后并右对齐 */
+#hisBox .top{flex-wrap:nowrap;align-items:center}
+#hisBox .top .pn{flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#hisBox .hbtns{flex:0 0 auto;margin-left:auto;display:flex;gap:4px;align-items:center}
+#hisBox .hbtns .btn{padding:3px 9px;font-size:11px;border-radius:8px;margin:0}
+/* 四代：发货搜索 + 地址历史卡片 */
+.shipsearch{display:flex;gap:6px;padding:8px 4px}
+.shipsearch input{flex:1;border:1px solid #dfe3ea;border-radius:8px;padding:7px 9px;font-size:13px}
+.shipsearch button{border:0;border-radius:8px;padding:7px 12px;background:#eee;color:#555;font-size:12px}
+.prodlg{font-size:11px;color:#555;background:#f7f9fc;border-radius:8px;padding:6px 8px;margin-bottom:6px;white-space:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.prodlg .lchip{display:inline-block;margin-right:10px;white-space:nowrap}
+.prodlg .lchip b{color:#1a73e8;margin-right:2px}
+.addrcards{max-height:32vh;overflow-y:auto;margin-top:6px;-webkit-overflow-scrolling:touch}
+.acard2{border:1px solid #e3e8ef;border-radius:8px;padding:5px 8px;margin-bottom:4px;background:#fff;cursor:pointer;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acard2 b{color:#1a73e8;margin-right:5px}
+.ctrlbtns{display:flex;flex-wrap:nowrap;gap:4px;margin-top:6px}
+.ctrlbtns .btn{flex:1 1 auto;margin:0;padding:7px 3px;font-size:11.5px;white-space:nowrap;border-radius:8px}
 </style>
 <meta name="theme-color" content="#1a73e8">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -75,17 +105,15 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
 </head>
 <body>
 <div class="login" id="loginBox">
-  <h2>安仔开抢三代 · 云端（V3.6）</h2>
+  <h2>安仔开抢四代 · 云端</h2>
   <input type="password" id="pw" placeholder="输入密码" inputmode="numeric">
-  <input type="text" id="key" placeholder="数据密钥(以 nfapp_ 开头)" autocomplete="off" style="-webkit-text-security:disc">
   <button onclick="login()">登录</button>
-  <div style="font-size:11px;color:#888;margin:2px 0 8px;text-align:left">数据密钥=电脑开抢窗口打印的 nfapp_… 一长串（看 手机看单_config.json 的 view_key）</div>
   <div class="err" id="loginErr"></div>
 </div>
 
 <div id="app" style="display:none">
   <div class="hd">
-    <h1>安仔开抢三代 <button class="gear" onclick="openSettings()">⚙️</button></h1>
+    <h1>安仔开抢四代 <button class="gear" onclick="openSettings()">⚙️</button></h1>
     <div class="sub" id="subInfo"></div>
   </div>
   <div class="agg" id="aggBar" style="display:none"></div>
@@ -93,12 +121,35 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
   <div class="legend"><span class="lg on"></span>上架&nbsp;&nbsp;&nbsp;<span class="lg off"></span>未上架</div>
   <div class="tabs">
     <button id="tabCur" class="on" onclick="showTab('cur')">当前订单</button>
+    <button id="tabAdd" onclick="openCtrl()">＋ 收货信息</button>
     <button id="tabShip" onclick="showTab('ship')">发货状态</button>
     <button id="tabHis" onclick="showTab('his')">历史订单</button>
   </div>
   <div id="curBox"></div>
-  <div id="shipBox" style="display:none"></div>
+  <div id="shipBox" style="display:none">
+    <div class="shipsearch"><input id="shipQ" placeholder="输入顺丰单号尾号（3、4、5…任意位都行）" oninput="renderShip((DATA&&DATA.ship)||[])"><button onclick="clearShipQ()">清除</button></div>
+    <div id="shipList"></div>
+  </div>
   <div id="hisBox" style="display:none"></div>
+</div>
+
+<div class="modal" id="ctrlModal">
+  <div class="box" style="text-align:left">
+    <div style="font-weight:800;font-size:15px;margin-bottom:6px">粘贴今日收货信息（数字+收货信息，不用网名）</div>
+    <div id="prodLegend" class="prodlg"></div>
+    <textarea id="ctrlText" style="width:100%;min-height:130px;border:1px solid #dfe3ea;border-radius:9px;padding:9px;font-size:13px;line-height:1.6" placeholder="每行一个买方，例：&#10;455 阿墨，15868114119，浙江省杭州市拱墅区体育场路252...&#10;89 测试人，13800138000，浙江省宁波市鄞州区测试路1号"></textarea>
+    <div class="ctrlbtns">
+      <button class="btn gray" onclick="useLastAddr()">上次</button>
+      <button class="btn qr" onclick="ctrlPreview()">预览</button>
+      <button class="btn" style="background:#27ae60" onclick="ctrlStart()">开抢</button>
+      <button class="btn del" onclick="ctrlStop()">停止</button>
+      <button class="btn gray" onclick="clearCtrlText()">清空</button>
+      <button class="btn gray" onclick="closeCtrl()">关闭</button>
+    </div>
+    <div id="ctrlResult" style="white-space:pre-wrap;font-size:12px;line-height:1.7;background:#f7f9fc;border-radius:8px;padding:9px;margin-top:8px;color:#333"></div>
+    <div style="font-size:11px;color:#888;margin-top:8px">历史地址（点击卡片自动填入，最近使用在最上面）：</div>
+    <div id="addrCards" class="addrcards"></div>
+  </div>
 </div>
 
 <div class="modal" id="qrModal">
@@ -120,6 +171,101 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
     <button class="close" onclick="closeSet()">关闭</button>
   </div>
 </div>
+
+
+<script>
+(function(){
+  var TEXTDB="https://textdb.online";
+  var nfAuthed=false;
+  function readBody(opts){
+    try{ return JSON.parse((opts&&opts.body)||"{}"); }catch(e){ return {}; }
+  }
+  function nfKey(){
+    var k="";
+    try{ k=localStorage.getItem("nfkey")||""; }catch(e){}
+    if(!k){
+      k=window.prompt("请输入手机数据密钥（以 nfapp_ 开头）")||"";
+      k=k.trim();
+      if(k){ try{ localStorage.setItem("nfkey",k); }catch(e){} }
+    }
+    return k;
+  }
+  function viewUrl(k){ return TEXTDB+"/"+encodeURIComponent(k); }
+  function cmdKey(k){ return "nfcmd_"+k; }
+  function ackKey(k){ return "nfack_"+k; }
+  function rjson(o){ return {status:200,json:function(){return Promise.resolve(o);}}; }
+  function unwrap(d){ return (d&&d.ok&&Object.prototype.hasOwnProperty.call(d,"data"))?d.data:d; }
+  function waitAck(k,id,timeout){
+    var end=Date.now()+timeout;
+    function poll(){
+      return origFetch(TEXTDB+"/"+encodeURIComponent(ackKey(k)),{cache:"no-store"})
+        .then(function(r){return r.text();})
+        .then(function(txt){
+          var d=null;
+          try{ d=JSON.parse(txt); }catch(e){}
+          if(d&&String(d.id)===String(id)) return d;
+          if(Date.now()>end) return {ok:false,error:"电脑没有响应，请确认本地四代正在运行"};
+          return new Promise(function(resolve){setTimeout(resolve,800);}).then(poll);
+        });
+    }
+    return poll();
+  }
+  function sendCmd(cmd,extra,timeout){
+    var k=nfKey();
+    if(!k) return Promise.resolve({ok:false,error:"没有数据密钥"});
+    var id="c"+Date.now()+"_"+Math.random().toString(16).slice(2);
+    var body=Object.assign({id:id,cmd:cmd},extra||{});
+    var data=new URLSearchParams({key:cmdKey(k),value:JSON.stringify(body)}).toString();
+    return origFetch(TEXTDB+"/update",{
+      method:"POST",
+      headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},
+      body:data
+    }).then(function(){return waitAck(k,id,timeout);});
+  }
+  var origFetch=window.fetch.bind(window);
+  window.fetch=function(url,opts){
+    opts=opts||{};
+    if(typeof url!=="string"||url.indexOf("/api/")!==0) return origFetch(url,opts);
+    var path=url.split("?")[0];
+    if(path==="/api/login"){
+      var b=readBody(opts);
+      var k=nfKey();
+      var ok=(b.pw==="1472580"&&!!k);
+      if(ok) nfAuthed=true;
+      return Promise.resolve(rjson({ok:ok,error:"密码或密钥不对"}));
+    }
+    if(path==="/api/state"){
+      if(!nfAuthed) return Promise.resolve({status:401,json:function(){return Promise.resolve({ok:false,error:"未登录"});}});
+      var k=nfKey();
+      if(!k) return Promise.resolve(rjson({ok:false,error:"没有数据密钥"}));
+      return origFetch(viewUrl(k),{cache:"no-store"}).then(function(r){return r.text();}).then(function(txt){
+        try{ return rjson(JSON.parse(txt)); }
+        catch(e){ return rjson({ok:false,error:"TextDB数据为空或密钥不对"}); }
+      });
+    }
+    if(path==="/api/preview") return sendCmd("preview",{text:readBody(opts).text},20000).then(function(d){return rjson(unwrap(d));});
+    if(path==="/api/start") return sendCmd("start",{text:readBody(opts).text},30000).then(function(d){return rjson(unwrap(d));});
+    if(path==="/api/stop") return sendCmd("stop",{},15000).then(function(d){return rjson(unwrap(d));});
+    if(path==="/api/remark") return sendCmd("remark",{oid:readBody(opts).oid,remark:readBody(opts).remark},10000).then(function(d){return rjson(unwrap(d));});
+    if(path==="/api/addrhist"){
+      if((String(opts.method||"GET")).toUpperCase()==="GET") return sendCmd("addrhist_get",{},10000).then(function(d){return rjson(unwrap(d));});
+      return sendCmd("addrhist_add",{items:readBody(opts).items||[]},10000).then(function(d){return rjson(unwrap(d));});
+    }
+    if(path==="/api/addrhist_del") return sendCmd("addrhist_del",{text:readBody(opts).text},10000).then(function(d){return rjson(unwrap(d));});
+    if(path==="/api/lasttext"){
+      if((String(opts.method||"GET")).toUpperCase()==="GET") return sendCmd("lasttext_get",{},10000).then(function(d){return rjson(unwrap(d));});
+      return sendCmd("lasttext_set",{text:readBody(opts).text},10000).then(function(d){return rjson(unwrap(d));});
+    }
+    return Promise.resolve(rjson({ok:false,error:"TextDB模式不支持该接口"}));
+  };
+  try{
+    var k=localStorage.getItem("nfkey")||"";
+    if(k && !localStorage.getItem("nfkey_shown")){
+      localStorage.setItem("nfkey_shown","1");
+    }
+  }catch(e){}
+})();
+</script>
 
 <script>
 /**
@@ -145,12 +291,13 @@ function beep(){ if(!SET.sound) return; try{ if(!audioCtx) audioCtx=new (window.
 function vibrate(){ if(!SET.vib) return; try{ if(navigator.vibrate) navigator.vibrate([300,100,300]); }catch(e){} }
 function esc(s){ return (s||"").toString().replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function shortName(n){ n=(n||"").replace("定制盲盒","").replace("盲盒","").replace("无花果","").replace("甜蜜","").replace("(16个装)","").replace("16个装","").trim(); return n; }
-function getKey(){ try{ return localStorage.getItem("nfkey")||""; }catch(e){ return ""; } }
+function getKey(){ return ""; }
 function login(){
-  var pw=$("pw").value.trim(), k=$("key").value.trim();
-  if(pw!==PASS || !/^nfapp_/.test(k)){ $("loginErr").textContent="密码或密钥不对（密钥在电脑开抢窗口有打印）"; return; }
-  try{ localStorage.setItem("nfkey", k); }catch(e){}
-  $("loginBox").style.display="none"; $("app").style.display="block"; start();
+  var pw=$("pw").value.trim();
+  fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({pw:pw})}).then(function(r){return r.json();}).then(function(d){
+    if(d.ok){ $("loginBox").style.display="none"; $("app").style.display="block"; start(); }
+    else { $("loginErr").textContent=d.error||"密码不对"; }
+  }).catch(function(){ $("loginErr").textContent="网络错误"; });
 }
 function start(){
   $("pw").value="";
@@ -174,10 +321,12 @@ function showTab(t){
 }
 function statusName(s){ if(s==="已付款")return ["已付款","paid"]; if(s==="未付款")return ["未付款","unpaid"]; return [s||"?","other"]; }
 function loadState(){
-  var k=getKey(); if(!k) return;
-  fetch("https://textdb.online/"+k+"?t="+Date.now(), {cache:"no-store"}).then(function(r){ return r.text(); }).then(function(txt){
-    if(!txt || txt.charAt(0)!=="{") return;
-    var d=JSON.parse(txt); DATA=d;
+  fetch("/api/state?t="+Date.now(), {cache:"no-store",credentials:"same-origin"}).then(function(r){
+    if(r.status===401){ $("app").style.display="none"; $("loginBox").style.display="flex"; return null; }
+    return r.json();
+  }).then(function(d){
+    if(!d) return;
+    DATA=d;
     var sig=JSON.stringify([d.running,d.aggressive,d.agg_until,d.trigger,d.products,(d.orders||[]).map(function(o){return o.oid+o.status;})]);
     if(sig!==lastSig){ lastSig=sig; render(d); }
     if(curTab==="ship") renderShip(d.ship||[]);
@@ -185,7 +334,7 @@ function loadState(){
   }).catch(function(){});
 }
 function render(d){
-  $("subInfo").textContent = (d.running?"● 抢购运行中":"○ 抢购未运行")+"　·　云端自动刷新 · V3.6"+(d.t?("  "+String(d.t).slice(11,19)):"");
+  $("subInfo").textContent = (d.running?"● 抢购运行中":"○ 抢购未运行")+"　·　云端自动刷新 · V5.5"+(d.t?("  "+String(d.t).slice(11,19)):"");
   var agg=$("aggBar");
   if(d.aggressive){ var rem=Math.max(0, d.agg_until-Math.floor(Date.now()/1000)); var mm=Math.floor(rem/60), ss=rem%60; agg.style.display="block"; agg.textContent="🔥 猛攻中 剩"+String(mm).padStart(2,"0")+":"+String(ss).padStart(2,"0")+" | "+(d.trigger||""); } else agg.style.display="none";
   var pb="";
@@ -245,12 +394,7 @@ function remarkHis(oid){
   if(t===null) return;
   o.remark=t;
   try{ var m=JSON.parse(localStorage.getItem("nfrem")||"{}"); m[oid]=t; localStorage.setItem("nfrem", JSON.stringify(m)); }catch(e){}
-  if(DATA && DATA.remarkKey){
-    try{
-      var body="key="+encodeURIComponent(DATA.remarkKey)+"&value="+encodeURIComponent(JSON.stringify([{oid:oid,remark:t}]));
-      fetch("https://textdb.online/update",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:body}).catch(function(){});
-    }catch(e){}
-  }
+  fetch("/api/remark",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({oid:oid,remark:t})}).catch(function(){});
   renderHistory(DATA&&DATA.history||[]);
 }
 function renderHistory(list){
@@ -267,15 +411,22 @@ function renderHistory(list){
       var rtxt=o.remark||localRem(o.oid);
       var rm=rtxt?("　📝"+esc(rtxt)):"";
       var cd=(o.status==="未付款"&&o.lockExp)?('<span class="cd" data-exp="'+o.lockExp+'">…</span>'):"";
+      var recv=o.finalRecv||o.finalAddr||o.address||o.buyer||"";
+      var expLine=(o.expressCode?('<div class="addr">顺丰单号: '+esc(o.expressCode)+' '+esc(o.expressCp||"")+'</div>'):"");
+      var oidTxt=o.orderLongId||o.oid||"";
+      var oidLine=(oidTxt?('<div class="addr">订单编号: '+esc(oidTxt)+'</div>'):"");
       var payBtn="";
       if(o.status==="未付款" && o.lockExp && o.codeUrl){
         payBtn='<button class="btn qr" onclick="openQr(\''+esc(orderKey(o))+'\')">付款二维码</button>';
       }
-      var remBtn = o.oid ? ('<button class="btn rem" onclick="remarkHis(\''+esc(o.oid)+'\')">备注</button>') : "";
-      var btns = (payBtn||remBtn) ? ('<div class="btns">'+payBtn+remBtn+'</div>') : "";
-      return '<div class="card"><div class="top"><span class="key">'+k+'</span><span class="badge '+st[1]+'">'+st[0]+'</span><span style="font-size:11px;color:#999">'+esc((o.time||"").slice(11,19))+'</span>'+cd+'</div>'
-        +'<div class="pname">'+esc(o.pname||"")+'<span class="price">'+fmtPrice(o.fee)+'</span></div>'
-        +'<div class="addr">'+esc(o.buyer||"")+rm+'</div>'+btns+'</div>';
+      var remBtn = o.oid ? ('<button class="btn rem small" onclick="remarkHis(\''+esc(o.oid)+'\')">备注</button>') : "";
+      var hbtns = (payBtn||remBtn) ? ('<span class="hbtns">'+payBtn+remBtn+'</span>') : "";
+      var remTxt = rtxt ? ('　📝'+esc(rtxt)) : "";
+      return '<div class="card"><div class="top"><span class="key">'+k+'</span><span class="badge '+st[1]+'">'+st[0]+'</span><span style="font-size:11px;color:#999">'+esc((o.time||"").slice(11,19))+'</span>'+cd
+        +'<span class="pn">'+esc(o.pname||"")+' <span class="price">'+fmtPrice(o.fee)+'</span></span>'
+        +hbtns
+        +'</div>'
+        +'<div class="addr">收货: '+esc(recv)+remTxt+'</div>'+oidLine+expLine+'</div>';
     }).join("");
     var open=(expanded[dt]===false)?' style="display:none"':"";
     var tri=(expanded[dt]===false)?"▸":"▾";
@@ -286,8 +437,10 @@ function renderHistory(list){
 function shipLabel(st, ems){ if(st==="NOSEND") return ["未发货","s0"]; if(st==="SENDED"){ if(ems==="SIGNED") return ["已签收","s3"]; if(ems==="ROUTING") return ["在途中","s2"]; return ["已发货","s1"]; } if(st==="REFUND") return ["已退款","s0"]; return [st||"?","s0"]; }
 function toggleGroup(el, dt){ expanded[dt]=(expanded[dt]===false)?true:false; var b=el.nextElementSibling; var tri=el.querySelector(".tri"); if(expanded[dt]===false){ b.style.display="none"; tri.textContent="▸"; } else { b.style.display="block"; tri.textContent="▾"; } }
 function renderShip(list){
-  var box=$("shipBox");
-  if(!list||!list.length){ box.innerHTML='<div class="empty">暂无发货信息</div>'; return; }
+  var box=$("shipList")||$("shipBox");
+  var q=($("shipQ")?($("shipQ").value||"").trim():"").toUpperCase();
+  if(q){ list=(list||[]).filter(function(o){ return String(o.code||"").toUpperCase().indexOf(q)>=0; }); }
+  if(!list||!list.length){ box.innerHTML='<div class="empty">'+(q?"没有匹配的单号":"暂无发货信息")+'</div>'; return; }
   var groups={};
   list.forEach(function(o){ var dt=(o.payTime||"").slice(0,5)||"未知"; (groups[dt]=groups[dt]||[]).push(o); });
   var dates=Object.keys(groups).sort().reverse();
@@ -295,7 +448,10 @@ function renderShip(list){
   dates.forEach(function(dt){
     var cards=groups[dt].sort(function(a,b){ return (b.payTime||"").localeCompare(a.payTime||""); }).map(function(o){
       var sl=shipLabel(o.state,o.ems);
-      return '<div class="card"><div class="top"><span class="key">'+esc(o.key||o.account)+'</span><span class="badge other ship-st '+sl[1]+'">'+sl[0]+'</span><span style="font-size:11px;color:#999">'+esc(o.payTime)+'</span></div><div class="pname">'+esc(o.goods)+'</div><div class="addr">'+(o.buyer?esc(o.buyer)+" ":"")+esc(o.recv)+'</div>'+(o.code?'<div class="addr">单号:'+esc(o.code)+'　'+esc(o.cp)+'</div>':'')+'</div>';
+      return '<div class="card"><div class="top"><span class="key">'+esc(o.key||o.account)+'</span><span class="badge other ship-st '+sl[1]+'">'+sl[0]+'</span><span style="font-size:11px;color:#999">'+esc(o.payTime)+'</span><span class="pn">'+esc(o.goods)+'</span></div>'
+        +'<div class="addr">收货: '+(o.buyer?esc(o.buyer)+" ":"")+esc(o.recv)+'</div>'
+        +(o.longId?'<div class="addr">订单编号: '+esc(o.longId)+'</div>':'')
+        +(o.code?'<div class="addr">顺丰单号: '+esc(o.code)+'　'+esc(o.cp)+'</div>':'')+'</div>';
     }).join("");
     var open=(expanded[dt]===false)?' style="display:none"':"";
     var tri=(expanded[dt]===false)?"▸":"▾";
@@ -303,6 +459,7 @@ function renderShip(list){
   });
   box.innerHTML=h;
 }
+function clearShipQ(){ var e=$("shipQ"); if(e){ e.value=""; } renderShip((DATA&&DATA.ship)||[]); }
 function orderKey(o){ return o.key || ((o.account||"")+(o.no==null?"":o.no)); }
 function findAnyOrder(key){
   var o=null;
@@ -332,13 +489,150 @@ function closeQr(){ $("qrModal").style.display="none"; }
 function remark(key){ alert("备注请在电脑端【付款订单三代】操作"); }
 function delOrder(key){ alert("删除请在电脑端【付款订单三代】操作"); }
 document.addEventListener("click", function(){ try{ if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} });
+var LEGEND_DEFAULT = {1:"稀有定制盲盒",2:"多品种盲盒",3:"乱搭",4:"梦幻甜蜜",5:"格莱斯无花果",6:"斯特拉无花果",7:"女王无花果",8:"TEST1 人参果",9:"石榴(绿籽薄皮)"};
+function legendMap(){
+  var m={}, arr=(DATA&&DATA.allProducts)||[];
+  arr.forEach(function(p){ if(p&&p.n!=null) m[p.n]=p.name||""; });
+  return Object.keys(m).length?m:LEGEND_DEFAULT;
+}
+function renderLegend(){
+  var m=legendMap(), h=[];
+  [1,2,3,4,5,6,7].forEach(function(n){
+    if(m[n]) h.push('<span class="lchip"><b>'+n+'</b>'+esc(m[n])+'</span>');
+  });
+  var box=$("prodLegend"); if(box) box.innerHTML=h.join("");
+}
+function loadAddrHist(){ try{ return JSON.parse(localStorage.getItem("nfaddr")||"[]")||[]; }catch(e){ return []; } }
+function saveAddrHist(a){ try{ localStorage.setItem("nfaddr", JSON.stringify((a||[]).slice(0,60))); }catch(e){} }
+function parseAddrLine(line){
+  var m=String(line||"").trim().match(/^([A-Za-z]?[0-9]+)\s*(.*)$/);
+  if(!m) return null;
+  return {nums:m[1].toUpperCase(), text:m[2].trim()};
+}
+function drawAddrCards(arr, box){
+  window.ADDR_LIST=(arr||[]).sort(function(a,b){return (b.ts||0)-(a.ts||0);});
+  if(!window.ADDR_LIST.length){ box.innerHTML='<div style="font-size:11px;color:#bbb;padding:4px 0">暂无历史地址</div>'; return; }
+  var h="";
+  window.ADDR_LIST.forEach(function(e,i){
+    h+='<div class="acard2" onclick="useAddrCard('+i+')" ontouchstart="startAddrPress(event,'+i+')" ontouchend="cancelAddrPress()" ontouchmove="cancelAddrPress()" onmousedown="startAddrPress(event,'+i+')" onmouseup="cancelAddrPress()" onmouseleave="cancelAddrPress()"><b>'+esc(e.nums||"")+'</b>'+esc(e.text||"")+'</div>';
+  });
+  box.innerHTML=h;
+}
+function postAddrHist(items){
+  return fetch("/api/addrhist",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({items:items||[]})}).then(function(r){return r.json();});
+}
+function renderAddrCards(){
+  var box=$("addrCards"); if(!box) return;
+  fetch("/api/addrhist",{cache:"no-store",credentials:"same-origin"}).then(function(r){return r.json();}).then(function(arr){
+    arr=arr||[];
+    if(!arr.length){
+      var loc=loadAddrHist();
+      if(loc.length){ postAddrHist(loc).catch(function(){}); drawAddrCards(loc,box); return; }
+    }
+    drawAddrCards(arr,box);
+  }).catch(function(){ drawAddrCards(loadAddrHist(),box); });
+}
+var _addrPressTimer=null, _addrLongPress=false;
+function startAddrPress(ev,i){ cancelAddrPress(); _addrLongPress=false; _addrPressTimer=setTimeout(function(){ _addrLongPress=true; deleteAddr(i); },700); }
+function cancelAddrPress(){ if(_addrPressTimer){ clearTimeout(_addrPressTimer); _addrPressTimer=null; } }
+function deleteAddr(i){
+  var e=(window.ADDR_LIST||[])[i]; if(!e) return;
+  if(!confirm("删除这条历史地址？\n"+e.text)) return;
+  fetch("/api/addrhist_del",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({text:e.text})}).then(function(){ renderAddrCards(); });
+}
+function useAddrCard(i){
+  if(_addrLongPress){ _addrLongPress=false; return; }
+  var e=(window.ADDR_LIST||[])[i]; if(!e) return;
+  var line=(e.nums?e.nums+" ":"")+(e.text||"");
+  var cur=($("ctrlText").value||"").replace(/\s+$/,"");
+  var el=$("ctrlText");
+  el.value = cur ? (cur + "\n" + line) : line;
+  el.scrollTop = el.scrollHeight;
+}
+function clearCtrlText(){
+  var el=$("ctrlText"); if(!el) return;
+  el.value=""; el.scrollTop=0;
+}
+function useLastAddr(){
+  fetch("/api/lasttext",{cache:"no-store",credentials:"same-origin"}).then(function(r){return r.json();}).then(function(d){
+    var t=(d&&d.text)||"";
+    if(!t){ var e=(window.ADDR_LIST||[])[0]; if(e) t=(e.nums?e.nums+" ":"")+(e.text||""); }
+    if(!t){ try{ t=localStorage.getItem("nfLastText")||""; }catch(err){} }
+    if(t){ var el=$("ctrlText"); el.value=t; el.scrollTop=el.scrollHeight; } else { alert("还没有用过的地址"); }
+  }).catch(function(){
+    var e=(window.ADDR_LIST||[])[0]; var t=e?((e.nums?e.nums+" ":"")+(e.text||"")):"";
+    if(t){ var el=$("ctrlText"); el.value=t; el.scrollTop=el.scrollHeight; } else { alert("还没有用过的地址"); }
+  });
+}
+function saveUsedAddrFromText(){
+  var text=$("ctrlText").value||"";
+  try{ localStorage.setItem("nfLastText", text); }catch(e){}
+  var items=[], now=Date.now(), stamp=new Date().toLocaleString();
+  text.split(/\r?\n/).forEach(function(l){
+    var e=parseAddrLine(l); if(!e||!e.text) return;
+    items.push({nums:e.nums,text:e.text,ts:now,time:stamp});
+  });
+  if(!items.length) return;
+  var arr=loadAddrHist();
+  items.forEach(function(it){ arr=[it].concat(arr.filter(function(x){return x.text!==it.text;})); });
+  saveAddrHist(arr);
+  fetch("/api/lasttext",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({text:text})}).catch(function(){});
+  postAddrHist(items).then(function(){ renderAddrCards(); }).catch(function(){ renderAddrCards(); });
+}
+function openCtrl(){ renderLegend(); renderAddrCards(); $("ctrlModal").style.display="flex"; }
+function closeCtrl(){ $("ctrlModal").style.display="none"; }
+function ctrlPreview(){
+  $("ctrlResult").style.whiteSpace="normal";
+  $("ctrlResult").innerHTML="配对中...";
+  fetch("/api/preview",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({text:$("ctrlText").value})}).then(function(r){return r.json();}).then(function(d){
+    if(!d.ok){ $("ctrlResult").textContent=(d.errors||[]).join("\n")||d.error||"配对失败"; return; }
+    var by={};
+    (d.assignments||[]).forEach(function(a){ var k=(a.bid||a.buyer||""); (by[k]=by[k]||[]).push(a); });
+    var h="";
+    (d.buyers||[]).forEach(function(b){
+      var key=b.bid||b.buyer||"";
+      if(!key){ key=(b.nickname||"")+"_"+(b.name||""); }
+      var my=by[key]||by[b.buyer||""]||[];
+      var wish=(b.products||[]).slice().sort(function(x,y){return x-y;});
+      var got=my.map(function(a){return a.product;}).sort(function(x,y){return x-y;});
+      var lost=wish.filter(function(x){return got.indexOf(x)<0;});
+      var note=lost.length?("（牺牲"+lost.join("、")+"）"):"";
+      var recv=(b.name||"")+" "+(b.tele||"")+" "+((b.province||"")+(b.city||"")+(b.district||"")+(b.detail||""));
+      if(!recv.trim() && b.address) recv=b.address;
+      h+='<div style="border:1px solid #e3e8ef;border-radius:10px;padding:9px 10px;margin-top:8px;background:#fff">'
+        +'<div style="font-weight:800;font-size:13.5px">'+esc(b.nickname||"")+'<span style="color:#1a73e8;font-weight:700;margin-left:8px">买 '+(got.length?got.join("、"):"")+note+'</span></div>'
+        +'<div style="font-size:11px;color:#666;margin-top:3px;word-break:break-all">收货: '+esc(recv.trim())+'</div>';
+      my.forEach(function(a){
+        h+='<div style="font-size:12.5px;margin-top:4px">'+a.product+' '+esc(a.pname||"")+'('+Math.round((a.price||0)/100)+'元) → <b>'+esc(a.account||"")+(a.no==null?"":a.no)+'</b></div>';
+      });
+      if(!my.length){ h+='<div style="font-size:12px;color:#c0392b;margin-top:4px">无法安排</div>'; }
+      h+='</div>';
+    });
+    $("ctrlResult").innerHTML=h||"没有可分配订单";
+  });
+}
+function ctrlStart(){
+  if(!confirm("确认开始抢购？")) return;
+  $("ctrlResult").textContent="启动中...";
+  fetch("/api/start",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({text:$("ctrlText").value})}).then(function(r){return r.json();}).then(function(d){
+    if(!d.ok){ $("ctrlResult").textContent=(d.errors||[]).join("\n")||d.error||"启动失败"; return; }
+    saveUsedAddrFromText();
+    renderAddrCards();
+    $("ctrlResult").textContent="已开始：云端盯梢中，抢到会微信推送";
+    loadState();
+  });
+}
+function ctrlStop(){
+  fetch("/api/stop",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:"{}"}).then(function(){ $("ctrlResult").textContent="已停止"; loadState(); });
+}
 function autoLogin(){
-  var k=getKey();
-  if(k && /^nfapp_/.test(k)){ $("loginBox").style.display="none"; $("app").style.display="block"; start(); }
-  else { $("loginBox").style.display="flex"; }
+  fetch("/api/state",{cache:"no-store",credentials:"same-origin"}).then(function(r){
+    if(r.status===200){ $("loginBox").style.display="none"; $("app").style.display="block"; start(); }
+    else { $("loginBox").style.display="flex"; }
+  }).catch(function(){ $("loginBox").style.display="flex"; });
 }
 
-var APP_VER = "anzai-v3.6";
+var APP_VER = "anzai-v5.5";
 function checkVer(){
   try{
     fetch("index.html?ver=" + Date.now(), {cache:"no-store"}).then(function(r){ return r.text(); }).then(function(t){
@@ -358,6 +652,7 @@ function checkVer(){
 setInterval(checkVer, 20000);
 
 document.addEventListener("visibilitychange", function(){ if(!document.hidden) loadState(); });
+if("serviceWorker" in navigator){ try{ navigator.serviceWorker.register("sw.js"); }catch(e){} }
 window.addEventListener("load", autoLogin);
 
 </script>
