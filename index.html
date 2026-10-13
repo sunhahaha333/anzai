@@ -190,7 +190,8 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
     }
     return k;
   }
-  function viewUrl(k){ return TEXTDB+"/"+encodeURIComponent(k); }
+  function cacheUrl(k){ return TEXTDB+"/"+encodeURIComponent(k)+"?_="+Date.now()+"_"+Math.random(); }
+  function viewUrl(k){ return cacheUrl(k); }
   function cmdKey(k){ return "nfcmd_"+k; }
   function ackKey(k){ return "nfack_"+k; }
   function rjson(o){ return {status:200,json:function(){return Promise.resolve(o);}}; }
@@ -198,7 +199,7 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
   function waitAck(k,id,timeout){
     var end=Date.now()+timeout;
     function poll(){
-      return origFetch(TEXTDB+"/"+encodeURIComponent(ackKey(k)),{cache:"no-store"})
+      return origFetch(cacheUrl(ackKey(k)),{cache:"no-store"})
         .then(function(r){return r.text();})
         .then(function(txt){
           var d=null;
@@ -243,18 +244,18 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
         catch(e){ return rjson({ok:false,error:"TextDB数据为空或密钥不对"}); }
       });
     }
-    if(path==="/api/preview") return sendCmd("preview",{text:readBody(opts).text},20000).then(function(d){return rjson(unwrap(d));});
-    if(path==="/api/start") return sendCmd("start",{text:readBody(opts).text},30000).then(function(d){return rjson(unwrap(d));});
-    if(path==="/api/stop") return sendCmd("stop",{},15000).then(function(d){return rjson(unwrap(d));});
-    if(path==="/api/remark") return sendCmd("remark",{oid:readBody(opts).oid,remark:readBody(opts).remark},10000).then(function(d){return rjson(unwrap(d));});
+    if(path==="/api/preview") return sendCmd("preview",{text:readBody(opts).text},45000).then(function(d){return rjson(unwrap(d));});
+    if(path==="/api/start") return sendCmd("start",{text:readBody(opts).text},60000).then(function(d){return rjson(unwrap(d));});
+    if(path==="/api/stop") return sendCmd("stop",{},30000).then(function(d){return rjson(unwrap(d));});
+    if(path==="/api/remark") return sendCmd("remark",{oid:readBody(opts).oid,remark:readBody(opts).remark},20000).then(function(d){return rjson(unwrap(d));});
     if(path==="/api/addrhist"){
-      if((String(opts.method||"GET")).toUpperCase()==="GET") return sendCmd("addrhist_get",{},10000).then(function(d){return rjson(unwrap(d));});
-      return sendCmd("addrhist_add",{items:readBody(opts).items||[]},10000).then(function(d){return rjson(unwrap(d));});
+      if((String(opts.method||"GET")).toUpperCase()==="GET") return sendCmd("addrhist_get",{},20000).then(function(d){return rjson(unwrap(d));});
+      return sendCmd("addrhist_add",{items:readBody(opts).items||[]},20000).then(function(d){return rjson(unwrap(d));});
     }
-    if(path==="/api/addrhist_del") return sendCmd("addrhist_del",{text:readBody(opts).text},10000).then(function(d){return rjson(unwrap(d));});
+    if(path==="/api/addrhist_del") return sendCmd("addrhist_del",{text:readBody(opts).text},20000).then(function(d){return rjson(unwrap(d));});
     if(path==="/api/lasttext"){
-      if((String(opts.method||"GET")).toUpperCase()==="GET") return sendCmd("lasttext_get",{},10000).then(function(d){return rjson(unwrap(d));});
-      return sendCmd("lasttext_set",{text:readBody(opts).text},10000).then(function(d){return rjson(unwrap(d));});
+      if((String(opts.method||"GET")).toUpperCase()==="GET") return sendCmd("lasttext_get",{},20000).then(function(d){return rjson(unwrap(d));});
+      return sendCmd("lasttext_set",{text:readBody(opts).text},20000).then(function(d){return rjson(unwrap(d));});
     }
     return Promise.resolve(rjson({ok:false,error:"TextDB模式不支持该接口"}));
   };
