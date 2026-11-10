@@ -181,14 +181,7 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
     try{ return JSON.parse((opts&&opts.body)||"{}"); }catch(e){ return {}; }
   }
   function nfKey(){
-    var k="";
-    try{ k=localStorage.getItem("nfkey_local")||""; }catch(e){}
-    if(!k){
-      k=window.prompt("请输入手机数据密钥（以 nfapp_ 开头）")||"";
-      k=k.trim();
-      if(k){ try{ localStorage.setItem("nfkey_local",k); }catch(e){} }
-    }
-    return k;
+    return "nfapp_6c30182bd8f3f4476e2f300fa699f87d";
   }
   function cacheUrl(k){ return TEXTDB+"/"+encodeURIComponent(k)+"?_="+Date.now()+"_"+Math.random(); }
   function viewUrl(k){ return cacheUrl(k); }
