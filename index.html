@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>安仔开抢三代 · 云端看单</title>
-<meta name="appver" content="anzai-v3.6">
+<meta name="appver" content="anzai-v3.7">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#f2f4f7;color:#222;padding-bottom:20px}
@@ -157,7 +157,7 @@ function start(){
   lastSig=""; ordersCache=[]; lastOids=new Set();
   loadState();
   if(timer) clearInterval(timer);
-  timer=setInterval(loadState, 2500);
+  timer=setInterval(loadState, 1500);
   setInterval(tickCd, 1000);
 }
 function showTab(t){
@@ -338,7 +338,7 @@ function autoLogin(){
   else { $("loginBox").style.display="flex"; }
 }
 
-var APP_VER = "anzai-v3.6";
+var APP_VER = "anzai-v3.7";
 function checkVer(){
   try{
     fetch("index.html?ver=" + Date.now(), {cache:"no-store"}).then(function(r){ return r.text(); }).then(function(t){
@@ -362,36 +362,5 @@ window.addEventListener("load", autoLogin);
 
 </script>
 
-<script>
-(function(){
-  var KEY="nfapp_6c30182bd8f3f4476e2f300fa699f87d";
-  var bar=null,lastState="";
-  function setState(s){
-    if(!bar){
-      bar=document.createElement("div");
-      bar.style.cssText="position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:99999;font:600 12px -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;padding:5px 10px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.12)";
-      document.body.appendChild(bar);
-    }
-    if(lastState===s)return;
-    lastState=s;
-    if(s==="on"){bar.textContent="● 本地端已运行";bar.style.background="#e8f5e9";bar.style.color="#1b7f3a";}
-    else if(s==="off"){bar.textContent="● 本地端未运行";bar.style.background="#fdecea";bar.style.color="#c0392b";}
-    else{bar.textContent="● 本地端状态查询中";bar.style.background="#eee";bar.style.color="#666";}
-  }
-  function check(){
-    var ctl=null;
-    try{ctl=new AbortController();setTimeout(function(){try{ctl.abort();}catch(e){}},8000);}catch(e){}
-    fetch("https://textdb.online/nfpc_"+KEY+"?t="+Date.now(),{cache:"no-store",signal:ctl?ctl.signal:undefined})
-      .then(function(r){return r.text();})
-      .then(function(t){
-        var d=null;try{d=JSON.parse(t);}catch(e){}
-        var ts=Number(d&&d.t||0);
-        setState(ts&&Date.now()/1000-ts<30?"on":"off");
-      })
-      .catch(function(){setState("unknown");});
-  }
-  document.addEventListener("DOMContentLoaded",function(){setState("unknown");setTimeout(check,500);setInterval(check,5000);});
-})();
-</script>
 </body>
 </html>
