@@ -173,10 +173,21 @@ function showTab(t){
   else { if(shipTimer){ clearInterval(shipTimer); shipTimer=null; } }
 }
 function statusName(s){ if(s==="已付款")return ["已付款","paid"]; if(s==="未付款")return ["未付款","unpaid"]; return [s||"?","other"]; }
-var NTFY_TOPIC="anzai_sync_6c30182bd8f3f4476e2f300fa699f87d", ntfyLastId="";
+var NTFY_TOPIC="anzai_sync_6c30182bd8f3f4476e2f300fa699f87d", ntfyLastId="", ntfySince="all", stateLoading=false;
+function fetchTimed(url, opts, ms){
+  var ctl=new AbortController(), timer=setTimeout(function(){try{ctl.abort();}catch(e){}}, ms||10000);
+  var o=opts||{}; o.signal=ctl.signal;
+  return fetch(url,o).then(function(r){clearTimeout(timer);return r;},function(e){clearTimeout(timer);throw e;});
+}
+function loadCachedState(){
+  try{ var t=localStorage.getItem("nfstatecache"); if(t) applyStateText(t); }catch(e){}
+}
 function applyStateText(txt){
     if(!txt || txt.charAt(0)!=="{") return;
-    var d=JSON.parse(txt); DATA=d;
+    var d=JSON.parse(txt);
+    if(DATA && DATA.t && d.t && d.t < DATA.t) return;
+    DATA=d;
+    try{ localStorage.setItem("nfstatecache", txt); }catch(e){}
     var sig=JSON.stringify([d.running,d.aggressive,d.agg_until,d.trigger,d.products,(d.orders||[]).map(function(o){return o.oid+o.status;})]);
     if(sig!==lastSig){ lastSig=sig; render(d); }
     if(curTab==="ship") renderShip(d.ship||[]);
@@ -184,19 +195,20 @@ function applyStateText(txt){
 }
 function loadState(){
   var k=getKey(); if(!k) return;
-  fetch("https://ntfy.sh/"+NTFY_TOPIC+"/json?poll=1&since=all", {cache:"no-store"}).then(function(r){ return r.text(); }).then(function(txt){
+  if(stateLoading) return;
+  stateLoading=true;
+  var request=fetchTimed("https://ntfy.sh/"+NTFY_TOPIC+"/json?poll=1&since="+encodeURIComponent(ntfySince), {cache:"no-store"}, 10000).then(function(r){ return r.text(); }).then(function(txt){
     var lines=txt.split(/\n+/), msg=null;
     for(var i=0;i<lines.length;i++){
       try{ var x=JSON.parse(lines[i]); if(x.attachment) msg=x; }catch(e){}
     }
     if(!msg || !msg.attachment || msg.id===ntfyLastId) return;
-    ntfyLastId=msg.id;
-    return fetch(msg.attachment.url+"?t="+Date.now(), {cache:"no-store"}).then(function(r){ return r.text(); }).then(applyStateText);
+    return fetchTimed(msg.attachment.url+"?t="+Date.now(), {cache:"no-store"}, 10000).then(function(r){ return r.text(); }).then(function(txt2){ applyStateText(txt2); ntfyLastId=msg.id; ntfySince=msg.time; });
   }).catch(function(){
-    var ctl=null;
-    try{ctl=new AbortController();setTimeout(function(){try{ctl.abort();}catch(e){}},8000);}catch(e){}
-    fetch("https://textdb.online/"+k+"?t="+Date.now(), {cache:"no-store",signal:ctl?ctl.signal:undefined}).then(function(r){ return r.text(); }).then(applyStateText).catch(function(){});
+    loadCachedState();
+    fetchTimed("https://textdb.online/"+k+"?t="+Date.now(), {cache:"no-store"}, 10000).then(function(r){ return r.text(); }).then(applyStateText).catch(function(){});
   });
+  request.then(function(){stateLoading=false;}, function(){stateLoading=false;});
 }
 function render(d){
   $("subInfo").textContent = (d.running?"● 抢购运行中":"○ 抢购未运行")+"　·　云端自动刷新 · V3.7"+(d.t?("  "+String(d.t).slice(11,19)):"");
@@ -348,7 +360,7 @@ function delOrder(key){ alert("删除请在电脑端【付款订单三代】操�
 document.addEventListener("click", function(){ try{ if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} });
 function autoLogin(){
   var k=getKey();
-  if(k && /^nfapp_/.test(k)){ $("loginBox").style.display="none"; $("app").style.display="block"; start(); }
+  if(k && /^nfapp_/.test(k)){ loadCachedState(); $("loginBox").style.display="none"; $("app").style.display="block"; start(); }
   else { $("loginBox").style.display="flex"; }
 }
 
