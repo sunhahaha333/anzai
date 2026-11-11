@@ -65,6 +65,22 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
 .set-row{display:flex;justify-content:space-between;align-items:center;padding:8px 4px;font-size:13px;border-bottom:1px solid #f0f0f0}
 .ship-st{font-weight:700}
 .ship-st.s0{color:#888}.ship-st.s1{color:#1a73e8}.ship-st.s2{color:#e67e22}.ship-st.s3{color:#27ae60}
+/* 四代：历史/发货紧凑格式 */
+#hisBox .card{padding:7px 9px;margin:6px 0}
+#hisBox .pname{margin-top:2px}
+#hisBox .addr{margin-top:1px;font-size:11px}
+#hisBox .btns{margin-top:3px}
+#hisBox .btn.rem.small,#hisBox .btn.qr{padding:3px 10px;font-size:11px;border-radius:8px}
+#shipBox .card{padding:7px 9px;margin:6px 0}
+#shipBox .addr{font-size:11px;margin-top:1px}
+#hisBox .top .pn,#shipBox .top .pn{font-size:12px;font-weight:600;color:#333;min-width:0}
+#hisBox .top{flex-wrap:nowrap;align-items:center}
+#hisBox .top .pn{flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#hisBox .hbtns{flex:0 0 auto;margin-left:auto;display:flex;gap:4px;align-items:center}
+#hisBox .hbtns .btn{padding:3px 9px;font-size:11px;border-radius:8px;margin:0}
+.shipsearch{display:flex;gap:6px;padding:8px 4px}
+.shipsearch input{flex:1;border:1px solid #dfe3ea;border-radius:8px;padding:7px 9px;font-size:13px}
+.shipsearch button{border:0;border-radius:8px;padding:7px 12px;background:#eee;color:#555;font-size:12px}
 </style>
 <meta name="theme-color" content="#1a73e8">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -97,7 +113,10 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
     <button id="tabHis" onclick="showTab('his')">历史订单</button>
   </div>
   <div id="curBox"></div>
-  <div id="shipBox" style="display:none"></div>
+  <div id="shipBox" style="display:none">
+    <div class="shipsearch"><input id="shipQ" placeholder="输入顺丰单号尾号（3、4、5…任意位都行）" oninput="renderShip((DATA&&DATA.ship)||[])"><button onclick="clearShipQ()">清除</button></div>
+    <div id="shipList"></div>
+  </div>
   <div id="hisBox" style="display:none"></div>
 </div>
 
@@ -294,15 +313,21 @@ function renderHistory(list){
       var rtxt=o.remark||localRem(o.oid);
       var rm=rtxt?("　📝"+esc(rtxt)):"";
       var cd=(o.status==="未付款"&&o.lockExp)?('<span class="cd" data-exp="'+o.lockExp+'">…</span>'):"";
+      var recv=o.finalRecv||o.finalAddr||o.address||o.buyer||"";
+      var expLine=(o.expressCode?('<div class="addr">顺丰单号: '+esc(o.expressCode)+' '+esc(o.expressCp||"")+'</div>'):"");
+      var oidTxt=o.orderLongId||o.oid||"";
+      var oidLine=(oidTxt?('<div class="addr">订单编号: '+esc(oidTxt)+'</div>'):"");
       var payBtn="";
       if(o.status==="未付款" && o.lockExp && o.codeUrl){
         payBtn='<button class="btn qr" onclick="openQr(\''+esc(orderKey(o))+'\')">付款二维码</button>';
       }
-      var remBtn = o.oid ? ('<button class="btn rem" onclick="remarkHis(\''+esc(o.oid)+'\')">备注</button>') : "";
-      var btns = (payBtn||remBtn) ? ('<div class="btns">'+payBtn+remBtn+'</div>') : "";
-      return '<div class="card"><div class="top"><span class="key">'+k+'</span><span class="badge '+st[1]+'">'+st[0]+'</span><span style="font-size:11px;color:#999">'+esc((o.time||"").slice(11,19))+'</span>'+cd+'</div>'
-        +'<div class="pname">'+esc(o.pname||"")+'<span class="price">'+fmtPrice(o.fee)+'</span></div>'
-        +'<div class="addr">'+esc(o.buyer||"")+rm+'</div>'+btns+'</div>';
+      var remBtn = o.oid ? ('<button class="btn rem small" onclick="remarkHis(\''+esc(o.oid)+'\')">备注</button>') : "";
+      var hbtns = (payBtn||remBtn) ? ('<span class="hbtns">'+payBtn+remBtn+'</span>') : "";
+      return '<div class="card"><div class="top"><span class="key">'+k+'</span><span class="badge '+st[1]+'">'+st[0]+'</span><span style="font-size:11px;color:#999">'+esc((o.time||"").slice(11,19))+'</span>'+cd
+        +'<span class="pn">'+esc(o.pname||"")+' <span class="price">'+fmtPrice(o.fee)+'</span></span>'
+        +hbtns
+        +'</div>'
+        +'<div class="addr">收货: '+esc(recv)+rm+'</div>'+oidLine+expLine+'</div>';
     }).join("");
     var open=(expanded[dt]===false)?' style="display:none"':"";
     var tri=(expanded[dt]===false)?"▸":"▾";
@@ -313,8 +338,10 @@ function renderHistory(list){
 function shipLabel(st, ems){ if(st==="NOSEND") return ["未发货","s0"]; if(st==="SENDED"){ if(ems==="SIGNED") return ["已签收","s3"]; if(ems==="ROUTING") return ["在途中","s2"]; return ["已发货","s1"]; } if(st==="REFUND") return ["已退款","s0"]; return [st||"?","s0"]; }
 function toggleGroup(el, dt){ expanded[dt]=(expanded[dt]===false)?true:false; var b=el.nextElementSibling; var tri=el.querySelector(".tri"); if(expanded[dt]===false){ b.style.display="none"; tri.textContent="▸"; } else { b.style.display="block"; tri.textContent="▾"; } }
 function renderShip(list){
-  var box=$("shipBox");
-  if(!list||!list.length){ box.innerHTML='<div class="empty">暂无发货信息</div>'; return; }
+  var box=$("shipList")||$("shipBox");
+  var q=($("shipQ")?($("shipQ").value||"").trim():"").toUpperCase();
+  if(q){ list=(list||[]).filter(function(o){ return String(o.code||"").toUpperCase().indexOf(q)>=0; }); }
+  if(!list||!list.length){ box.innerHTML='<div class="empty">'+(q?"没有匹配的单号":"暂无发货信息")+'</div>'; return; }
   var groups={};
   list.forEach(function(o){ var dt=(o.payTime||"").slice(0,5)||"未知"; (groups[dt]=groups[dt]||[]).push(o); });
   var dates=Object.keys(groups).sort().reverse();
@@ -322,7 +349,10 @@ function renderShip(list){
   dates.forEach(function(dt){
     var cards=groups[dt].sort(function(a,b){ return (b.payTime||"").localeCompare(a.payTime||""); }).map(function(o){
       var sl=shipLabel(o.state,o.ems);
-      return '<div class="card"><div class="top"><span class="key">'+esc(o.key||o.account)+'</span><span class="badge other ship-st '+sl[1]+'">'+sl[0]+'</span><span style="font-size:11px;color:#999">'+esc(o.payTime)+'</span></div><div class="pname">'+esc(o.goods)+'</div><div class="addr">'+(o.buyer?esc(o.buyer)+" ":"")+esc(o.recv)+'</div>'+(o.code?'<div class="addr">单号:'+esc(o.code)+'　'+esc(o.cp)+'</div>':'')+'</div>';
+      return '<div class="card"><div class="top"><span class="key">'+esc(o.key||o.account)+'</span><span class="badge other ship-st '+sl[1]+'">'+sl[0]+'</span><span style="font-size:11px;color:#999">'+esc(o.payTime)+'</span><span class="pn">'+esc(o.goods)+'</span></div>'
+        +'<div class="addr">收货: '+(o.buyer?esc(o.buyer)+" ":"")+esc(o.recv)+'</div>'
+        +(o.longId?'<div class="addr">订单编号: '+esc(o.longId)+'</div>':'')
+        +(o.code?'<div class="addr">顺丰单号: '+esc(o.code)+'　'+esc(o.cp)+'</div>':'')+'</div>';
     }).join("");
     var open=(expanded[dt]===false)?' style="display:none"':"";
     var tri=(expanded[dt]===false)?"▸":"▾";
@@ -330,6 +360,7 @@ function renderShip(list){
   });
   box.innerHTML=h;
 }
+function clearShipQ(){ var e=$("shipQ"); if(e){ e.value=""; } renderShip((DATA&&DATA.ship)||[]); }
 function orderKey(o){ return o.key || ((o.account||"")+(o.no==null?"":o.no)); }
 function findAnyOrder(key){
   var o=null;
